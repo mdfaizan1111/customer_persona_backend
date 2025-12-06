@@ -140,7 +140,7 @@ with st.form("customer_form", clear_on_submit=False):
     Age = c1.number_input("Age", 18, 100, 30)
     Gender = c2.selectbox("Gender", ["Male", "Female", "Other"])
     City_Tier = c3.selectbox("City Tier", [1.0, 2.0, 3.0])
-    Occupation = c4.selectbox("Occupation", ["Salarared", "Self-Employed", "Business Owner"])
+    Occupation = c4.selectbox("Occupation", ["Salaried", "Self-Employed", "Business Owner"])
 
     # INCOME & ACCOUNT ACTIVITY
     st.markdown("### 💰 Income & Account Activity")
