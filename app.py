@@ -4,7 +4,7 @@ import pandas as pd
 from persona_config import PERSONA_DETAILS
 
 # ---------------------------------------------------------
-# PAGE CONFIG (Fixes LinkedIn rich preview + metadata)
+# PAGE CONFIG (for LinkedIn rich preview + basic SEO)
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Customer Persona Predictor",
@@ -18,7 +18,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# LOAD MODEL SAFELY (cached)
+# LOAD MODEL (cached once per session)
 # ---------------------------------------------------------
 @st.cache_resource
 def load_model():
@@ -39,7 +39,7 @@ FEATURE_COLUMNS = [
 ]
 
 # ---------------------------------------------------------
-# CLUSTER MEDIAN FACTS (from your screenshots)
+# CLUSTER MEDIAN SNAPSHOT FACTS (incl. Dormancy as last line)
 # ---------------------------------------------------------
 PERSONA_FACTS = {
     0: {
@@ -51,6 +51,7 @@ PERSONA_FACTS = {
         "SIP Amount": "₹1,200",
         "FD Amount": "₹10,000",
         "ATM Withdrawals": 1,
+        "Dormancy": "99 days",
     },
     1: {
         "Age": 45,
@@ -60,6 +61,7 @@ PERSONA_FACTS = {
         "UPI Usage": "0.32",
         "ATM Withdrawals": 6,
         "SIP Amount": "₹2,500",
+        "Dormancy": "159 days",
     },
     2: {
         "Age": 34,
@@ -70,6 +72,7 @@ PERSONA_FACTS = {
         "Credit Card Utilization": "48%",
         "FD Amount": "₹75,000",
         "UPI Usage": "0.84",
+        "Dormancy": "24 days",
     },
     3: {
         "Age": 31,
@@ -79,6 +82,7 @@ PERSONA_FACTS = {
         "Mobile App Logins": 16,
         "AMB": "₹18,000",
         "FD Amount": "₹22,000",
+        "Dormancy": "79 days",
     }
 }
 
@@ -87,18 +91,17 @@ PERSONA_FACTS = {
 # ---------------------------------------------------------
 st.title("🧠 Customer Persona Prediction App")
 st.write(
-    "Classify customers into **data-driven personas** using ML segmentation. "
-    "Enter customer attributes to generate a live persona prediction."
+    "Classify customers into **data-driven personas** using an ML clustering model. "
+    "Enter customer attributes below to generate a live persona prediction."
 )
 
 # ---------------------------------------------------------
-# PERSONA OVERVIEW GRID
+# PERSONA OVERVIEW GRID (Top cards with median snapshot)
 # ---------------------------------------------------------
 st.markdown("## 📌 Persona Archetypes Overview")
 
 cols = st.columns(4)
 for idx, (cluster_id, persona) in enumerate(PERSONA_DETAILS.items()):
-
     facts = PERSONA_FACTS.get(cluster_id, {})
     median_html = (
         "<p style='margin:4px 0 2px; font-weight:600;'>Median Snapshot:</p>"
@@ -132,6 +135,10 @@ st.markdown("---")
 # ---------------------------------------------------------
 st.subheader("📋 Enter Customer Details")
 
+# Initialise session state key for prediction (to avoid stale values)
+if "cluster_id" not in st.session_state:
+    st.session_state["cluster_id"] = None
+
 with st.form("customer_form", clear_on_submit=False):
 
     # DEMOGRAPHICS
@@ -158,14 +165,14 @@ with st.form("customer_form", clear_on_submit=False):
     Netbanking_Login = c11.number_input("Netbanking Logins (per month)", 0, 300, 10)
     ATM_Withdrawal_Count = c12.number_input("ATM Withdrawals (per month)", 0, 50, 2)
 
-    # RELATIONSHIP DEPTH
+    # RELATIONSHIP DEPTH & RISK
     st.markdown("### 🧩 Relationship Depth & Risk")
     c13, c14, c15, c16 = st.columns(4)
     Products_Held = c13.number_input("Products Held", 0, 10, 2)
     Dormancy_Days = c13.number_input("Dormancy Days", 0, 365, 30)
     Credit_Card_Utilization = c14.number_input("Credit Card Utilization (%)", 0, 100, 40)
     Failed_Txn_Count = c14.number_input("Failed Txn Count", 0, 50, 1)
-    EMI_Presence = c15.selectbox("EMI Presence", [0, 1])
+    EMI_Presence = c15.selectbox("EMI Presence (0 = No, 1 = Yes)", [0, 1])
     Insurance_Premium = c15.number_input("Insurance Premium (₹)", 0, 500000, 3000)
     SIP_Amount = c16.number_input("SIP Amount (₹)", 0, 300000, 2000)
     FD_Amount = c16.number_input("FD Amount (₹)", 0, 20000000, 50000)
@@ -173,9 +180,10 @@ with st.form("customer_form", clear_on_submit=False):
     submit = st.form_submit_button("🔍 Predict Persona")
 
 # ---------------------------------------------------------
-# PREDICTION
+# PREDICTION (robust, always fresh on button click)
 # ---------------------------------------------------------
 if submit:
+    # Prepare DataFrame in correct column order
     input_df = pd.DataFrame([{
         "Age": Age,
         "Gender": Gender,
@@ -199,14 +207,20 @@ if submit:
         "FD_Amount": FD_Amount,
     }], columns=FEATURE_COLUMNS)
 
-    cluster_id = int(model.predict(input_df)[0])
-    st.session_state["cluster_id"] = cluster_id
+    try:
+        cid = int(model.predict(input_df)[0])
+        st.session_state["cluster_id"] = cid
+    except Exception as e:
+        # If prediction fails, do NOT reuse old value
+        st.session_state["cluster_id"] = None
+        st.error(f"Prediction failed. Please check inputs. Details: {e}")
 
 # ---------------------------------------------------------
-# RESULT DISPLAY (NO MEDIAN FACTS HERE)
+# RESULT DISPLAY (uses latest cluster_id only)
 # ---------------------------------------------------------
-if "cluster_id" in st.session_state:
-    cid = st.session_state["cluster_id"]
+cid = st.session_state.get("cluster_id", None)
+
+if cid is not None:
     persona = PERSONA_DETAILS.get(cid, {})
 
     st.markdown("---")
@@ -230,6 +244,5 @@ if "cluster_id" in st.session_state:
     st.markdown("### 💡 Recommended Actions")
     for rec in persona.get("recommendations", []):
         st.markdown(f"- {rec}")
-
 else:
-    st.info("Fill the form and click **Predict Persona** to see results.")
+    st.info("Fill the form above and click **Predict Persona** to see the result here.")
