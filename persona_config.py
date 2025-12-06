@@ -1,61 +1,78 @@
 # persona_config.py
-
-# ------------- PERSONA DEFINITIONS (by cluster id) -----------------
+# ---------------------------------------------------------
+# FINAL PERSONA DEFINITIONS WITH CLEAN ICONS (Option A)
+# ---------------------------------------------------------
 
 PERSONA_DETAILS = {
     0: {
-        "name": "Young Digital Transactors",
+        "icon": "🚀",
+        "name": "Urban Young Digital Spenders",
         "description": (
-            "Young, mid-income customers who are heavy UPI users and "
-            "transact frequently through digital channels."
+            "Digitally active younger customers with high UPI usage, frequent "
+            "mobile app logins, moderate income, and regular debit spending. "
+            "They show strong digital behaviour but maintain moderate balances."
         ),
         "recommendations": [
-            "Offer a starter / entry-level credit card with UPI-linked rewards.",
-            "Promote small SIP starter packs (₹2k–₹3k) and goal-based investing.",
-            "Run app-based cashback / gamified engagement campaigns."
+            "Offer UPI-linked cashback and gamified app engagement rewards.",
+            "Promote small-ticket SIPs and beginner wealth products.",
+            "Cross-sell lifestyle credit cards with digital-first benefits.",
+            "Introduce bite-sized insurance and micro-investing journeys.",
         ],
     },
+
     1: {
-        "name": "Affluent Offline Savers",
+        "icon": "🏦",
+        "name": "Affluent Mature Offline Savers",
         "description": (
-            "Older, high-balance customers with large FDs who prefer assisted "
-            "or offline banking and use digital channels less frequently."
+            "Older, high-balance conservative customers with strong FD holdings "
+            "and limited digital adoption. Prefer assisted channels and maintain "
+            "high AMB with stable financial behaviour."
         ),
         "recommendations": [
-            "Offer RM-led wealth management and FD-to-mutual-fund migration.",
-            "Bundle senior-focused life & health insurance products.",
-            "Provide assisted digital onboarding and priority customer service."
+            "Push RM-led wealth advisory, FD-to-MF migration, and senior bundles.",
+            "Promote health and life insurance tailored for mature customers.",
+            "Enable assisted digital onboarding and premium service journeys.",
+            "Cross-sell long-term retirement planning instruments.",
         ],
     },
+
     2: {
-        "name": "Urban Affluent Digital Power Users",
+        "icon": "💎",
+        "name": "Metro Affluent Digital Power Investors",
         "description": (
-            "High-income, mostly Tier-1 customers with strong card usage, "
-            "high SIP contribution and very high mobile app activity."
+            "High-income metro customers with strong SIP contributions, heavy "
+            "mobile-app usage, high credit card usage, and diversified product "
+            "holdings. They are financially sophisticated and digitally native."
         ),
         "recommendations": [
-            "Cross-sell premium credit cards with travel and lifestyle benefits.",
-            "Promote equity SIPs, PMS/wealth products and advanced investing tools.",
-            "Offer pre-approved high-value personal loans / BNPL lines."
+            "Upsell premium credit cards with travel, lounge, and rewards benefits.",
+            "Promote PMS, equity SIPs, and advanced wealth-management tools.",
+            "Offer pre-approved high-value loans and instant credit lines.",
+            "Introduce exclusive investment masterclasses and premium privileges.",
         ],
     },
+
     3: {
+        "icon": "👨‍🌾",
         "name": "Semi-Urban Cash-Heavy Aspirers",
         "description": (
-            "Mid-income, Tier-2/3 customers who rely heavily on ATM and debit, "
-            "with moderate digital adoption and growing savings."
+            "Mid-income Tier-2/3 customers relying heavily on ATM withdrawals and "
+            "debit transactions, with moderate digital adoption and growing savings. "
+            "They represent a rising segment transitioning gradually to digital habits."
         ),
         "recommendations": [
-            "Promote debit-card reward programs and ATM fee waivers.",
-            "Push UPI adoption and simple digital journeys for everyday payments.",
-            "Offer small-ticket personal loans and financial literacy campaigns."
+            "Run financial literacy and digital adoption campaigns (UPI, app usage).",
+            "Provide debit-card rewards and ATM transaction fee waivers.",
+            "Promote small-ticket personal loans and starter credit products.",
+            "Introduce simplified insurance and first-time investment journeys.",
         ],
     },
 }
 
-# ------------- FEATURE METADATA (name, description, reason, widget) -----------------
+# ---------------------------------------------------------
+# FEATURE METADATA (Unchanged, unless you want icons here also)
+# ---------------------------------------------------------
 
-# NOTE: order here MUST match the training column order
 FEATURE_META = {
     "Age": {
         "label": "Age",

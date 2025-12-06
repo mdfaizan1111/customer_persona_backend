@@ -1,26 +1,34 @@
 import streamlit as st
 import joblib
 import pandas as pd
-from persona_config import PERSONA_DETAILS  # your persona dict
+from persona_config import PERSONA_DETAILS
 
-# --------------------------------------------------------------------
-# BASIC PAGE CONFIG
-# --------------------------------------------------------------------
+# ---------------------------------------------------------
+# PAGE CONFIG (Fixes LinkedIn rich preview + metadata)
+# ---------------------------------------------------------
 st.set_page_config(
     page_title="Customer Persona Predictor",
+    page_icon="🧠",
     layout="wide",
 )
 
-# --------------------------------------------------------------------
-# LOAD MODEL ONCE (CACHED)
-# --------------------------------------------------------------------
+st.markdown("""
+<meta name="title" content="Customer Persona Predictor | ML Segmentation Demo">
+<meta name="description" content="Interactive app to classify customers into data-driven personas using ML clustering. Built with Streamlit + Python.">
+""", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# LOAD MODEL SAFELY (cached)
+# ---------------------------------------------------------
 @st.cache_resource
 def load_model():
     return joblib.load("model.pkl")
 
 model = load_model()
 
-# Column order expected by the pipeline
+# ---------------------------------------------------------
+# FEATURE ORDER (must match model training)
+# ---------------------------------------------------------
 FEATURE_COLUMNS = [
     "Age", "Gender", "City_Tier", "Occupation", "Annual_Income", "AMB",
     "Debit_Txn_Count", "Credit_Txn_Count", "UPI_Usage_Ratio",
@@ -30,132 +38,88 @@ FEATURE_COLUMNS = [
     "SIP_Amount", "FD_Amount"
 ]
 
-# --------------------------------------------------------------------
-# FEATURE META (HELP TEXT)
-# --------------------------------------------------------------------
-FEATURE_META = {
-    "Age": {
-        "desc": "Customer age in years.",
-        "reason": "Age proxies life-stage and typical product needs."
+# ---------------------------------------------------------
+# CLUSTER MEDIAN FACTS (from your screenshots)
+# ---------------------------------------------------------
+PERSONA_FACTS = {
+    0: {
+        "Age": 28,
+        "Occupation": "Salaried (65%)",
+        "UPI Usage": "0.76",
+        "Mobile App Logins": 35,
+        "AMB": "₹32,000",
+        "SIP Amount": "₹1,200",
+        "FD Amount": "₹10,000",
+        "ATM Withdrawals": 1,
     },
-    "Gender": {
-        "desc": "Self-identified gender.",
-        "reason": "Used only for segmentation, not pricing or eligibility."
+    1: {
+        "Age": 45,
+        "Occupation": "Business Owner (58%)",
+        "FD Amount": "₹8,50,000",
+        "AMB": "₹1,20,000",
+        "UPI Usage": "0.32",
+        "ATM Withdrawals": 6,
+        "SIP Amount": "₹2,500",
     },
-    "City_Tier": {
-        "desc": "Tier of customer’s city (1 = metro, 3 = semi-urban / rural).",
-        "reason": "Captures economic context and channel behaviour."
+    2: {
+        "Age": 34,
+        "Occupation": "Salaried (72%)",
+        "Income": "₹18,00,000",
+        "SIP Amount": "₹12,000",
+        "Mobile App Logins": 68,
+        "Credit Card Utilization": "48%",
+        "FD Amount": "₹75,000",
+        "UPI Usage": "0.84",
     },
-    "Occupation": {
-        "desc": "Primary occupation type.",
-        "reason": "Drives income stability and spending pattern."
-    },
-    "Annual_Income": {
-        "desc": "Approximate annual income (₹).",
-        "reason": "Key driver of financial capacity and product appetite."
-    },
-    "AMB": {
-        "desc": "Average Monthly Balance maintained in the account.",
-        "reason": "Indicates depth of relationship and deposit potential."
-    },
-    "Debit_Txn_Count": {
-        "desc": "Monthly count of outgoing debit transactions.",
-        "reason": "Proxy for account activity and spend usage."
-    },
-    "Credit_Txn_Count": {
-        "desc": "Monthly count of incoming credit transactions.",
-        "reason": "Captures salary credits, inflows and business receipts."
-    },
-    "UPI_Usage_Ratio": {
-        "desc": "Share of transactions done via UPI (0–1).",
-        "reason": "Direct measure of digital adoption."
-    },
-    "ATM_Withdrawal_Count": {
-        "desc": "Monthly ATM cash withdrawals.",
-        "reason": "Indicates cash dependency vs digital spending."
-    },
-    "Failed_Txn_Count": {
-        "desc": "Monthly failed transactions.",
-        "reason": "High failures can mean friction and dissatisfaction."
-    },
-    "Mobile_App_Login": {
-        "desc": "Monthly mobile banking logins.",
-        "reason": "Core digital engagement metric."
-    },
-    "Netbanking_Login": {
-        "desc": "Monthly netbanking logins.",
-        "reason": "Captures web-based digital activity."
-    },
-    "Dormancy_Days": {
-        "desc": "Days since last successful transaction.",
-        "reason": "Early signal for dormancy or churn risk."
-    },
-    "Products_Held": {
-        "desc": "Number of products held (loan, card, FD, etc.).",
-        "reason": "Relationship depth and cross-sell base."
-    },
-    "Credit_Card_Utilization": {
-        "desc": "Credit card utilization percentage.",
-        "reason": "Shows credit appetite and repayment behaviour."
-    },
-    "EMI_Presence": {
-        "desc": "Whether customer has active EMIs (0 = No, 1 = Yes).",
-        "reason": "Indicates leverage level and credit penetration."
-    },
-    "Insurance_Premium": {
-        "desc": "Total insurance premium outflow.",
-        "reason": "Shows protection product penetration and upsell scope."
-    },
-    "SIP_Amount": {
-        "desc": "Monthly SIP amount in mutual funds.",
-        "reason": "Proxy for investment maturity and risk appetite."
-    },
-    "FD_Amount": {
-        "desc": "Total fixed deposit holdings.",
-        "reason": "Captures conservative savings and liquidity buffer."
-    },
+    3: {
+        "Age": 31,
+        "Occupation": "Self-Employed (52%)",
+        "ATM Withdrawals": 11,
+        "UPI Usage": "0.41",
+        "Mobile App Logins": 16,
+        "AMB": "₹18,000",
+        "FD Amount": "₹22,000",
+    }
 }
 
-
-def help_text(name: str) -> str:
-    meta = FEATURE_META.get(name, {})
-    return f"{meta.get('desc', '')}\n\n**Why used:** {meta.get('reason', '')}"
-
-
-# --------------------------------------------------------------------
-# HEADER + PERSONA OVERVIEW CARDS
-# --------------------------------------------------------------------
+# ---------------------------------------------------------
+# APP HEADER
+# ---------------------------------------------------------
 st.title("🧠 Customer Persona Prediction App")
-
 st.write(
-    "Use this tool to classify a retail banking customer into one of the pre-defined "
-    "personas and view suggested marketing & cross-sell actions."
+    "Classify customers into **data-driven personas** using ML segmentation. "
+    "Enter customer attributes to generate a live persona prediction."
 )
 
-st.markdown("### 📌 Persona Archetypes")
+# ---------------------------------------------------------
+# PERSONA OVERVIEW GRID
+# ---------------------------------------------------------
+st.markdown("## 📌 Persona Archetypes Overview")
 
-cols = st.columns(len(PERSONA_DETAILS))
+cols = st.columns(4)
 for idx, (cluster_id, persona) in enumerate(PERSONA_DETAILS.items()):
+
+    facts = PERSONA_FACTS.get(cluster_id, {})
+    median_html = (
+        "<p style='margin:4px 0 2px; font-weight:600;'>Median Snapshot:</p>"
+        "<ul style='margin-left:-10px; font-size:0.80rem;'>"
+        + "".join([f"<li><b>{k}:</b> {v}</li>" for k, v in facts.items()])
+        + "</ul>"
+    )
+
     with cols[idx]:
         st.markdown(
             f"""
             <div style="
-                border-radius: 12px;
-                padding: 12px;
-                border: 1px solid #e0e0e0;
-                background: linear-gradient(135deg, #f8fafc, #eef2ff);
-                height: 100%;
+                border-radius: 14px;
+                padding: 14px;
+                border: 1px solid #ddd;
+                background: #f7f9fc;
+                min-height: 280px;
             ">
-                <h4 style="margin-bottom:4px;">{persona.get('name','Persona')}</h4>
-                <p style="font-size:0.85rem; margin-bottom:4px;">
-                    {persona.get('description','')}
-                </p>
-                <p style="font-size:0.78rem; color:#555;">
-                    Example plays:
-                    <ul style="margin-left:-18px; font-size:0.78rem;">
-                        {''.join([f"<li>{r}</li>" for r in persona.get('recommendations', [])[:2]])}
-                    </ul>
-                </p>
+                <h3>{persona.get("icon","")} {persona.get("name","")}</h3>
+                <p style="font-size:0.85rem;">{persona.get("description","")}</p>
+                {median_html}
             </div>
             """,
             unsafe_allow_html=True,
@@ -163,124 +127,55 @@ for idx, (cluster_id, persona) in enumerate(PERSONA_DETAILS.items()):
 
 st.markdown("---")
 
-# --------------------------------------------------------------------
-# INPUT FORM (GROUPED SECTIONS)
-# --------------------------------------------------------------------
-with st.form("customer_form"):
-    st.subheader("📋 Capture Customer Snapshot")
+# ---------------------------------------------------------
+# INPUT FORM
+# ---------------------------------------------------------
+st.subheader("📋 Enter Customer Details")
 
-    # --- Demographics & Profile ---
-    st.markdown("#### 👤 Demographics & Profile")
+with st.form("customer_form", clear_on_submit=False):
+
+    # DEMOGRAPHICS
+    st.markdown("### 👤 Demographics & Profile")
     c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        Age = st.number_input("Age", 18, 100, 30, help=help_text("Age"))
-    with c2:
-        Gender = st.selectbox("Gender", ["Male", "Female", "Other"], help=help_text("Gender"))
-    with c3:
-        City_Tier = st.selectbox("City Tier", [1.0, 2.0, 3.0], index=0, help=help_text("City_Tier"))
-    with c4:
-        Occupation = st.selectbox(
-            "Occupation",
-            ["Salaried", "Self-Employed", "Business Owner"],
-            help=help_text("Occupation")
-        )
+    Age = c1.number_input("Age", 18, 100, 30)
+    Gender = c2.selectbox("Gender", ["Male", "Female", "Other"])
+    City_Tier = c3.selectbox("City Tier", [1.0, 2.0, 3.0])
+    Occupation = c4.selectbox("Occupation", ["Salarared", "Self-Employed", "Business Owner"])
 
-    # --- Income & Account Activity ---
-    st.markdown("#### 💰 Income & Account Activity")
+    # INCOME & ACCOUNT ACTIVITY
+    st.markdown("### 💰 Income & Account Activity")
     c5, c6, c7, c8 = st.columns(4)
-    with c5:
-        Annual_Income = st.number_input(
-            "Annual Income (₹)", 100000, 10000000, 800000, step=50000,
-            help=help_text("Annual_Income")
-        )
-    with c6:
-        AMB = st.number_input(
-            "Average Monthly Balance (₹)", 0, 1000000, 50000, step=5000,
-            help=help_text("AMB")
-        )
-    with c7:
-        Debit_Txn_Count = st.number_input(
-            "Monthly Debit Txn Count", 0, 300, 10,
-            help=help_text("Debit_Txn_Count")
-        )
-    with c8:
-        Credit_Txn_Count = st.number_input(
-            "Monthly Credit Txn Count", 0, 300, 5,
-            help=help_text("Credit_Txn_Count")
-        )
+    Annual_Income = c5.number_input("Annual Income (₹)", 100000, 50000000, 800000, step=50000)
+    AMB = c6.number_input("Average Monthly Balance (₹)", 0, 5000000, 50000, step=5000)
+    Debit_Txn_Count = c7.number_input("Monthly Debit Txn Count", 0, 300, 10)
+    Credit_Txn_Count = c8.number_input("Monthly Credit Txn Count", 0, 300, 5)
 
-    # --- Digital & Channel Behaviour ---
-    st.markdown("#### 📱 Digital & Channel Behaviour")
+    # DIGITAL BEHAVIOUR
+    st.markdown("### 📱 Digital & Channel Behaviour")
     c9, c10, c11, c12 = st.columns(4)
-    with c9:
-        UPI_Usage_Ratio = st.slider(
-            "UPI Usage Ratio", 0.0, 1.0, 0.5,
-            help=help_text("UPI_Usage_Ratio")
-        )
-    with c10:
-        Mobile_App_Login = st.number_input(
-            "Mobile App Logins (per month)", 0, 300, 20,
-            help=help_text("Mobile_App_Login")
-        )
-    with c11:
-        Netbanking_Login = st.number_input(
-            "Netbanking Logins (per month)", 0, 300, 10,
-            help=help_text("Netbanking_Login")
-        )
-    with c12:
-        ATM_Withdrawal_Count = st.number_input(
-            "ATM Withdrawals (per month)", 0, 50, 2,
-            help=help_text("ATM_Withdrawal_Count")
-        )
+    UPI_Usage_Ratio = c9.slider("UPI Usage Ratio", 0.0, 1.0, 0.5)
+    Mobile_App_Login = c10.number_input("Mobile App Logins (per month)", 0, 300, 20)
+    Netbanking_Login = c11.number_input("Netbanking Logins (per month)", 0, 300, 10)
+    ATM_Withdrawal_Count = c12.number_input("ATM Withdrawals (per month)", 0, 50, 2)
 
-    # --- Relationship Depth & Risk ---
-    st.markdown("#### 🧩 Relationship Depth & Risk")
+    # RELATIONSHIP DEPTH
+    st.markdown("### 🧩 Relationship Depth & Risk")
     c13, c14, c15, c16 = st.columns(4)
-    with c13:
-        Products_Held = st.number_input(
-            "Products Held (count)", 0, 10, 2,
-            help=help_text("Products_Held")
-        )
-        Dormancy_Days = st.number_input(
-            "Dormancy Days", 0, 365, 30,
-            help=help_text("Dormancy_Days")
-        )
-    with c14:
-        Credit_Card_Utilization = st.number_input(
-            "Credit Card Utilization (%)", 0, 100, 40,
-            help=help_text("Credit_Card_Utilization")
-        )
-        Failed_Txn_Count = st.number_input(
-            "Failed Txn Count (per month)", 0, 50, 1,
-            help=help_text("Failed_Txn_Count")
-        )
-    with c15:
-        EMI_Presence = st.selectbox(
-            "EMI Presence (0 = No, 1 = Yes)",
-            [0, 1],
-            help=help_text("EMI_Presence")
-        )
-        Insurance_Premium = st.number_input(
-            "Insurance Premium (₹)", 0, 500000, 3000, step=500,
-            help=help_text("Insurance_Premium")
-        )
-    with c16:
-        SIP_Amount = st.number_input(
-            "SIP Amount (₹)", 0, 500000, 2000, step=500,
-            help=help_text("SIP_Amount")
-        )
-        FD_Amount = st.number_input(
-            "FD Amount (₹)", 0, 10000000, 50000, step=10000,
-            help=help_text("FD_Amount")
-        )
+    Products_Held = c13.number_input("Products Held", 0, 10, 2)
+    Dormancy_Days = c13.number_input("Dormancy Days", 0, 365, 30)
+    Credit_Card_Utilization = c14.number_input("Credit Card Utilization (%)", 0, 100, 40)
+    Failed_Txn_Count = c14.number_input("Failed Txn Count", 0, 50, 1)
+    EMI_Presence = c15.selectbox("EMI Presence", [0, 1])
+    Insurance_Premium = c15.number_input("Insurance Premium (₹)", 0, 500000, 3000)
+    SIP_Amount = c16.number_input("SIP Amount (₹)", 0, 300000, 2000)
+    FD_Amount = c16.number_input("FD Amount (₹)", 0, 20000000, 50000)
 
     submit = st.form_submit_button("🔍 Predict Persona")
 
-# --------------------------------------------------------------------
-# PREDICTION (ONLY ON BUTTON CLICK) + SESSION STATE STORAGE
-# --------------------------------------------------------------------
+# ---------------------------------------------------------
+# PREDICTION
+# ---------------------------------------------------------
 if submit:
-    # Prepare input in a DataFrame with correct column order
     input_df = pd.DataFrame([{
         "Age": Age,
         "Gender": Gender,
@@ -305,42 +200,36 @@ if submit:
     }], columns=FEATURE_COLUMNS)
 
     cluster_id = int(model.predict(input_df)[0])
-    persona = PERSONA_DETAILS.get(cluster_id, {})
+    st.session_state["cluster_id"] = cluster_id
 
-    # Save to session_state so result persists across reruns
-    st.session_state["last_cluster_id"] = cluster_id
-    st.session_state["last_persona"] = persona
-
-# --------------------------------------------------------------------
-# RESULT DISPLAY (PERSISTS EVEN IF APP RERUNS)
-# --------------------------------------------------------------------
-if "last_persona" in st.session_state:
-    persona = st.session_state["last_persona"]
-    cluster_id = st.session_state["last_cluster_id"]
+# ---------------------------------------------------------
+# RESULT DISPLAY (NO MEDIAN FACTS HERE)
+# ---------------------------------------------------------
+if "cluster_id" in st.session_state:
+    cid = st.session_state["cluster_id"]
+    persona = PERSONA_DETAILS.get(cid, {})
 
     st.markdown("---")
-    st.markdown("### 📊 Latest Prediction Result")
+    st.markdown("## 🎯 Latest Prediction Result")
 
     st.markdown(
         f"""
         <div style="
             border-radius: 14px;
-            padding: 16px 18px;
-            border: 1px solid #d4d4d8;
-            background: linear-gradient(135deg, #f9fafb, #eef2ff);
+            padding: 18px;
+            border: 1px solid #ccc;
+            background: #f9fafb;
         ">
-            <h3 style="margin-bottom:6px;">🎯 Persona: {persona.get('name', 'Unknown Persona')}</h3>
-            <p style="margin-bottom:6px;"><b>Cluster ID:</b> {cluster_id}</p>
-            <p style="font-size:0.95rem; margin-bottom:8px;">
-                {persona.get('description', '')}
-            </p>
+            <h2>{persona.get("icon","")} Persona: {persona.get("name","")}</h2>
+            <p><b>Cluster ID:</b> {cid}</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown("#### 💡 Recommended Marketing / Cross-sell Plays")
+    st.markdown("### 💡 Recommended Actions")
     for rec in persona.get("recommendations", []):
-        st.markdown(f"- ✅ {rec}")
+        st.markdown(f"- {rec}")
+
 else:
-    st.info("Fill the form above and click **Predict Persona** to see the result here.")
+    st.info("Fill the form and click **Predict Persona** to see results.")
